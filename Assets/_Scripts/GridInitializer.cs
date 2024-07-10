@@ -19,9 +19,13 @@ public class GridInitializer : MonoBehaviour
     
     [SerializeField] private Camera _cam;
     [SerializeField] private Grid _grid;
+    [SerializeField] private Transform _gridParent;
     [SerializeField] private Tile _groundPrefab;
-    [SerializeField] private GameObject _blockPrefab;
+    [SerializeField] private Block _blockBase;
     [SerializeField] private Tile[,] _gridObjects;
+    
+    //Added for testing the conditions of blocks
+    private Block _currentBlock;
 
     private void Awake()
     {
@@ -36,10 +40,10 @@ public class GridInitializer : MonoBehaviour
             for (int j = 0; j < _gridHeight; j++)
             {
                 Vector3 position = _grid.GetCellCenterWorld(new Vector3Int(i, j, 0));
-                Tile spawnedGameObject = Instantiate(_groundPrefab, position,_groundPrefab.transform.rotation);
+                Tile spawnedGameObject = Instantiate(_groundPrefab, position,_groundPrefab.transform.rotation,_gridParent);
                 _gridObjects[i, j] = spawnedGameObject;
-                spawnedGameObject.transform.parent = transform;
                 spawnedGameObject.GetComponent<MeshRenderer>().material.color = AlternateColors(i,j);
+                spawnedGameObject.name = $"Tile {i}.{j}";
             }
         }
     }
@@ -50,12 +54,21 @@ public class GridInitializer : MonoBehaviour
         {
             return j % 2 == 0 ? Color.black : Color.white;
         }
-        else
-        {
-            return j % 2 == 0 ? Color.white : Color.black;
-        }
+
+        return j % 2 == 0 ? Color.white : Color.black;
+    }
+    
+    //Added for testing the conditions of blocks
+    public void SetCurrentBlock(BlockData pBlockData)
+    {
+        _currentBlock = _blockBase;
+        _currentBlock.BlockData = pBlockData;
+        Debug.Log("Switch current block to:"  + _currentBlock.BlockData.blockName);
     }
 
+    /// <summary>
+    /// Places the object on the grid with the use of Raycasting onto the grid.
+    /// </summary>
     private void PlaceObject()
     {
         Vector3 mousePos = Input.mousePosition;
@@ -65,13 +78,54 @@ public class GridInitializer : MonoBehaviour
         if (!Physics.Raycast(ray, out hit)) return;
         
         Vector3Int cellPosition = _grid.WorldToCell(hit.point);
-        if (cellPosition.x >= 0 && cellPosition.x < _gridWidth && cellPosition.y >= 0 && cellPosition.y < _gridHeight)
+        
+        if (cellPosition.x < 0 || cellPosition.x >= _gridWidth || cellPosition.y < 0 ||
+            cellPosition.y >= _gridHeight) return;
+        
+        Tile tile = _gridObjects[cellPosition.x, cellPosition.y];
+
+        Vector3 worldPositionBlock = _grid.CellToWorld(cellPosition);
+        
+        worldPositionBlock.y = _grid.cellSize.z + (tile.GetBlockCount() * _grid.cellSize.z); //grid is XZY, Unity is XYZ
+
+        //May need to change this to a switch statement
+        if (tile.IsOccupied)
         {
-            Tile selectedObject = _gridObjects[cellPosition.x, cellPosition.y];
-            if(selectedObject.IsOccupied) return;
-            selectedObject.IsOccupied = true;
-            Vector3Int blockCellPosition = cellPosition + new Vector3Int(0, 0, 1); //grid is XZY, Unity is XYZ
-            Instantiate(_blockPrefab,_grid.CellToWorld(blockCellPosition), _blockPrefab.transform.rotation);
+            //Check if the block is valid to place
+            Block foundationBlock = tile.GetTopBlock();
+            BlockData validFoundation = _currentBlock.BlockData.validFoundation;
+            
+            if (foundationBlock == null)
+            {
+                SpawnBlock(worldPositionBlock, tile);
+                Debug.Log("Foundation block is null, placing block on top of it.");
+            }
+            else
+            {
+                
+                if (foundationBlock.BlockData == validFoundation)
+                {
+                    Debug.Log($"Foundation block is: {foundationBlock.BlockData.blockName} and valid foundation is: {validFoundation.blockName} ");
+                    SpawnBlock(worldPositionBlock, tile);
+                }
+                else
+                {
+                    Debug.Log("Invalid placement");
+                }
+            }
         }
+        else
+        {
+            SpawnBlock(worldPositionBlock, tile);
+            Debug.Log("Tile is not occupied, placing block on top of it.");
+        }
+    }
+
+    private void SpawnBlock(Vector3 worldPositionBlock, Tile tile)
+    {
+        Block spawnedBlock = Instantiate(_currentBlock.BlockData.blockPrefab, worldPositionBlock,
+            _currentBlock.BlockData.blockPrefab.transform.rotation, tile.transform);
+        spawnedBlock.BlockData = _currentBlock.BlockData;
+        tile.AddBlock(spawnedBlock);
     }
 }
