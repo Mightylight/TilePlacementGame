@@ -42,9 +42,27 @@ public class GridInitializer : MonoBehaviour
                 Vector3 position = _grid.GetCellCenterWorld(new Vector3Int(i, j, 0));
                 Tile spawnedGameObject = Instantiate(_groundPrefab, position,_groundPrefab.transform.rotation,_gridParent);
                 _gridObjects[i, j] = spawnedGameObject;
+                spawnedGameObject.transform.rotation = _grid.transform.rotation;
                 spawnedGameObject.GetComponent<MeshRenderer>().material.color = AlternateColors(i,j);
                 spawnedGameObject.name = $"Tile {i}.{j}";
+                spawnedGameObject.gridPosition = new Vector2Int(i, j);
             }
+        }
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            _inputManager.OnClicked += PlaceObject;
+            _inputManager.OnClicked -= DisplayCoords;
+            Debug.Log("Switched to block placement mode");
+        } 
+        else if (Input.GetKeyDown(KeyCode.N))
+        {
+            _inputManager.OnClicked += DisplayCoords;
+            _inputManager.OnClicked -= PlaceObject;
+            Debug.Log("Switched to display coordinates mode");
         }
     }
 
@@ -64,6 +82,55 @@ public class GridInitializer : MonoBehaviour
         _currentBlock = _blockBase;
         _currentBlock.BlockData = pBlockData;
         Debug.Log("Switch current block to:"  + _currentBlock.BlockData.blockName);
+    }
+
+    private void DisplayCoords()
+    {
+        Vector3 mousePos = Input.mousePosition;
+        mousePos.z = _cam.nearClipPlane;
+        Ray ray = _cam.ScreenPointToRay(mousePos);
+        RaycastHit hit;
+        if (!Physics.Raycast(ray, out hit)) return;
+        
+        Vector3Int cellPosition = _grid.WorldToCell(hit.point);
+        
+        if (cellPosition.x < 0 || cellPosition.x >= _gridWidth || cellPosition.y < 0 ||
+            cellPosition.y >= _gridHeight) return;
+        
+        Tile tile = _gridObjects[cellPosition.x, cellPosition.y];
+        Debug.Log($"Tile: {tile.name} at position: {tile.gridPosition}. Parity: {tile.gridPosition.y % 2}");
+        Tile[] neighbours = GetNeighbours(tile);
+        
+        HexagonalPatternChecker.CheckPattern(HexagonalPatterns.SingularAdjacent, tile, neighbours);
+    }
+    
+    
+    private Tile[] GetNeighbours(Tile pTile)
+    {
+        Vector3Int[] neighbourPositions = new Vector3Int[6];
+        
+        Dictionary<int, Vector2Int[]> evenRDirections = HexConversion.directions;
+        
+        List<Tile> neighbours = new List<Tile>();
+        string neighbourString = "";
+        
+        Vector2Int[] directions = evenRDirections[pTile.gridPosition.y % 2];
+        
+        neighbourString += "Parity:" + pTile.gridPosition.y % 2 + " \n";
+        
+       
+
+        foreach (Vector2Int direction in directions)
+        {
+            Vector2Int neighbourPosition = pTile.gridPosition + direction;
+            neighbourString += neighbourPosition + "\n";
+            if (neighbourPosition.x < 0 || neighbourPosition.x >= _gridWidth || neighbourPosition.y < 0 ||
+                neighbourPosition.y >= _gridHeight) continue;
+            neighbours.Add(_gridObjects[neighbourPosition.x, neighbourPosition.y]);
+        }
+        
+        Debug.Log(neighbourString);
+        return neighbours.ToArray();
     }
 
     /// <summary>

@@ -5,13 +5,20 @@ using UnityEngine;
 public class Tile : MonoBehaviour
 {
     [SerializeField] private List<Block> _blocks = new();
-
+    [SerializeField] private Vector2Int _gridPosition;
+    
     [SerializeField] private bool isOccupied;
     
     public bool IsOccupied
     {
         get => isOccupied;
         set => isOccupied = value;
+    }
+
+    public Vector2Int gridPosition
+    {
+        get => _gridPosition;
+        set => _gridPosition = value;
     }
     
     public void AddBlock(Block block)
