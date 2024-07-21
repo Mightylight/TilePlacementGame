@@ -26,6 +26,7 @@ public class GridInitializer : MonoBehaviour
     
     //Added for testing the conditions of blocks
     private Block _currentBlock;
+    public Block CurrentBlock => _currentBlock;
 
     private void Awake()
     {
@@ -138,6 +139,9 @@ public class GridInitializer : MonoBehaviour
     /// </summary>
     private void PlaceObject()
     {
+        if (_currentBlock is null)
+            return;
+        
         Vector3 mousePos = Input.mousePosition;
         mousePos.z = _cam.nearClipPlane;
         Ray ray = _cam.ScreenPointToRay(mousePos);
@@ -185,7 +189,9 @@ public class GridInitializer : MonoBehaviour
         {
             SpawnBlock(worldPositionBlock, tile);
             Debug.Log("Tile is not occupied, placing block on top of it.");
+            _currentBlock = null;
         }
+
     }
 
     private void SpawnBlock(Vector3 worldPositionBlock, Tile tile)
