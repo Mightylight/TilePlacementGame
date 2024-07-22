@@ -18,4 +18,5 @@ public class BlockData : ScriptableObject
     public int blockHeight = 1;
     [Tooltip("Could be a nice way to make for some different gameplay, for now just keep on 1")]
     public int blockWidth = 1;
+    
 }

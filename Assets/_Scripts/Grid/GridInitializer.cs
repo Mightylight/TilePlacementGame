@@ -23,6 +23,8 @@ public class GridInitializer : MonoBehaviour
     [SerializeField] private Tile _groundPrefab;
     [SerializeField] private Block _blockBase;
     [SerializeField] private Tile[,] _gridObjects;
+
+    [SerializeField] private CardManager _cardManager;
     
     //Added for testing the conditions of blocks
     private Block _currentBlock;
@@ -43,7 +45,9 @@ public class GridInitializer : MonoBehaviour
                 Tile spawnedGameObject = Instantiate(_groundPrefab, position,_groundPrefab.transform.rotation,_gridParent);
                 _gridObjects[i, j] = spawnedGameObject;
                 spawnedGameObject.transform.rotation = _grid.transform.rotation;
-                spawnedGameObject.GetComponent<MeshRenderer>().material.color = AlternateColors(i,j);
+                Color color = AlternateColors(i, j);
+                spawnedGameObject.GetComponent<MeshRenderer>().material.color = color;
+                spawnedGameObject.BaseColor = color;
                 spawnedGameObject.name = $"Tile {i}.{j}";
                 spawnedGameObject.gridPosition = new Vector2Int(i, j);
             }
@@ -101,9 +105,8 @@ public class GridInitializer : MonoBehaviour
         Debug.Log($"Tile: {tile.name} at position: {tile.gridPosition}. Parity: {tile.gridPosition.y % 2}");
         Tile[] neighbours = GetNeighbours(tile);
         
-        HexagonalPatternChecker.CheckPattern(HexagonalPatterns.SingularAdjacent, tile, neighbours);
+        _cardManager.CheckPatternCurrentCard(tile, neighbours);
     }
-    
     
     private Tile[] GetNeighbours(Tile pTile)
     {
@@ -132,6 +135,8 @@ public class GridInitializer : MonoBehaviour
         Debug.Log(neighbourString);
         return neighbours.ToArray();
     }
+    
+    
 
     /// <summary>
     /// Places the object on the grid with the use of Raycasting onto the grid.

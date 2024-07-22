@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using NaughtyAttributes;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 [CreateAssetMenu(fileName = "New Card", menuName = "Card")]
 public class Card : ScriptableObject
@@ -12,7 +14,22 @@ public class Card : ScriptableObject
     private int _uses;
     private int _pointsObtained;
     
-    //Pattern variables
+    
+    //Inspector filled fields
+    [SerializeField] private HexagonalPatterns patternType;
+    [SerializeField] private BlockData[] middleBlock;
+    [SerializeField] private BlockData[] adjacentBlock;
+    [HideIf("IsSingleBlockPattern")]
+    [SerializeField] private BlockData[] adjacentBlock2;
+    
+    //Used in code
+    [HideInInspector]
+    public PatternData patternData;
+    
+    public bool IsSingleBlockPattern()
+    {
+        return patternType == HexagonalPatterns.SingularAdjacent;
+    }
     
     public int Uses
     {
@@ -26,8 +43,25 @@ public class Card : ScriptableObject
         set => _pointsObtained = value;
     }
 
-    private void Awake()
+    public void Initialize()
     {
         Uses = pointsScale.Length;
+        patternData = new PatternData
+        {
+            patternType = patternType,
+            middleBlock = middleBlock,
+            adjacentBlock = adjacentBlock,
+            adjacentBlock2 = adjacentBlock2
+        };
+        Debug.Log("Card created");
     }
+}
+
+[Serializable]
+public class PatternData
+{
+    public HexagonalPatterns patternType;
+    public BlockData[] middleBlock;
+    public BlockData[] adjacentBlock;
+    public BlockData[] adjacentBlock2;
 }
